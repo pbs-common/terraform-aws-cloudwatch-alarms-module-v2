@@ -24,21 +24,21 @@ resource "aws_cloudwatch_metric_alarm" "alarm" {
   period              = each.value.alarm_period
   statistic           = each.value.alarm_statistic
   alarm_description   = each.value.description
-  alarm_actions       = [aws_sns_topic.topic[each.key].arn]
+  alarm_actions       = length(local.alarm_actions) > 0 ? [aws_sns_topic.topic[each.key].arn] : []
   treat_missing_data  = each.value.treat_missing_data
 
   tags = local.tags
 }
 
 resource "aws_sns_topic" "topic" {
-  for_each = { for alarm in var.alarms : alarm.name => alarm if alarm.slack_channel_id != "" }
+  for_each = local.alarm_actions
 
   name = "${local.full_name}-${each.value.name}-topic"
   tags = local.tags
 }
 
 resource "aws_chatbot_slack_channel_configuration" "slack" {
-  for_each = { for alarm in var.alarms : alarm.name => alarm if alarm.slack_channel_id != "" }
+  for_each = local.alarm_actions
 
   configuration_name = "${local.full_name}-${each.value.name}-${each.value.slack_channel_id}"
   slack_channel_id   = each.value.slack_channel_id

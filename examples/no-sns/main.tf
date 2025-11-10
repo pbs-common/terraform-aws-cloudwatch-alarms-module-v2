@@ -8,7 +8,7 @@ module "alarm" {
       name               = "error"
       description        = "Alarm if more than 5 errors in 1 minute"
       slack_channel_id   = ""
-      log_group_name     = "/ecs/test-app"
+      log_group_name     = aws_cloudwatch_log_group.this.name
       pattern            = "ERROR"
       metric_name        = "error-count"
       metric_namespace   = "test-app"
@@ -25,4 +25,8 @@ module "alarm" {
   product      = var.product
   owner        = var.owner
   repo         = var.repo
+}
+
+resource "aws_cloudwatch_log_group" "this" {
+  name = "/ecs/no-sns"
 }

@@ -16,6 +16,8 @@ locals {
     }
   )
   tags = merge({ for k, v in local.default_tags : k => v if lookup(data.aws_default_tags.common_tags.tags, k, "") != v })
+
+  alarm_actions = { for alarm in var.alarms : alarm.name => alarm if alarm.slack_channel_id != "" }
 }
 
 data "aws_default_tags" "common_tags" {}
