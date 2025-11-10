@@ -7,7 +7,7 @@
 Use this URL for the source of the module. See the usage examples below for more details.
 
 ```hcl
-github.com/pbs/terraform-aws-cloudwatch-alarms-module-v2?ref=0.0.2
+github.com/pbs/terraform-aws-cloudwatch-alarms-module-v2?ref=x.y.z
 ```
 
 ### Alternative Installation Methods
@@ -24,7 +24,7 @@ Integrate this module like so:
 
 ```hcl
 module "alarm" {
-  source = "github.com/pbs/terraform-aws-cloudwatch-alarms-module-v2?ref=0.0.2"
+  source = "github.com/pbs/terraform-aws-cloudwatch-alarms-module-v2?ref=x.y.z"
 
   name       = "test-app"
   alarms     = [
@@ -59,7 +59,7 @@ module "alarm" {
 
 If this repo is added as a subtree, then the version of the module should be close to the version shown here:
 
-`0.0.2`
+`x.y.z`
 
 Note, however that subtrees can be altered as desired within repositories.
 
@@ -75,14 +75,14 @@ Below is automatically generated documentation on this Terraform module using [t
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3.2 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 5.61.0 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.13.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.0.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.3.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.20.0 |
 
 ## Modules
 
@@ -108,7 +108,7 @@ No modules.
 | <a name="input_owner"></a> [owner](#input\_owner) | Tag used to group resources according to owner | `string` | n/a | yes |
 | <a name="input_product"></a> [product](#input\_product) | Tag used to group resources according to product | `string` | n/a | yes |
 | <a name="input_repo"></a> [repo](#input\_repo) | Tag used to point to the repo using this module | `string` | n/a | yes |
-| <a name="input_alarms"></a> [alarms](#input\_alarms) | List of CloudWatch alert configurations for Slack notifications.<br><br>Each object supports the following attributes:<br>- name: (string) Unique name for the alert<br>- description: (string) Description of the alarm<br>- slack\_channel\_id: (string) Slack channel ID to send notifications to<br>- log\_group\_name: (string) CloudWatch log group to monitor<br>- pattern: (string) Filter pattern for log events https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html<br>- metric\_name: (string) Name of the custom metric<br>- metric\_namespace: (string) Namespace for the custom metric<br>- metric\_value: (string) Value to publish to the metric when the pattern matches (usually "1")<br>- alarm\_threshold: (number) Threshold for triggering the alarm<br>- alarm\_period: (number) Period (in seconds) over which data is evaluated<br>- alarm\_statistic: (string) Statistic to apply to the metric. Possible values: "Sum", "Average", "Minimum", "Maximum", "SampleCount"<br>- treat\_missing\_data: (string) How to treat missing data. Possible values: "breaching", "notBreaching", "ignore", "missing" | <pre>list(object({<br>    name               = string<br>    description        = string<br>    slack_channel_id   = string<br>    log_group_name     = string<br>    pattern            = string<br>    metric_name        = string<br>    metric_namespace   = string<br>    metric_value       = string<br>    alarm_threshold    = number<br>    alarm_period       = number<br>    alarm_statistic    = string<br>    treat_missing_data = string<br>  }))</pre> | `[]` | no |
+| <a name="input_alarms"></a> [alarms](#input\_alarms) | List of CloudWatch alert configurations for Slack notifications.<br/><br/>Each object supports the following attributes:<br/>- name: (string) Unique name for the alert<br/>- description: (string) Description of the alarm<br/>- slack\_channel\_id: (string) Slack channel ID to send notifications to<br/>- log\_group\_name: (string) CloudWatch log group to monitor<br/>- pattern: (string) Filter pattern for log events https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html<br/>- metric\_name: (string) Name of the custom metric<br/>- metric\_namespace: (string) Namespace for the custom metric<br/>- metric\_value: (string) Value to publish to the metric when the pattern matches (usually "1")<br/>- alarm\_threshold: (number) Threshold for triggering the alarm<br/>- alarm\_period: (number) Period (in seconds) over which data is evaluated<br/>- alarm\_statistic: (string) Statistic to apply to the metric. Possible values: "Sum", "Average", "Minimum", "Maximum", "SampleCount"<br/>- treat\_missing\_data: (string) How to treat missing data. Possible values: "breaching", "notBreaching", "ignore", "missing" | <pre>list(object({<br/>    name               = string<br/>    description        = string<br/>    slack_channel_id   = string<br/>    log_group_name     = string<br/>    pattern            = string<br/>    metric_name        = string<br/>    metric_namespace   = string<br/>    metric_value       = string<br/>    alarm_threshold    = number<br/>    alarm_period       = number<br/>    alarm_statistic    = string<br/>    treat_missing_data = string<br/>  }))</pre> | `[]` | no |
 | <a name="input_chatbot_role_arn"></a> [chatbot\_role\_arn](#input\_chatbot\_role\_arn) | ARN of the IAM role for AWS Chatbot | `string` | `null` | no |
 | <a name="input_name"></a> [name](#input\_name) | Name of the alarm being created. Defaults to product if null. | `string` | `null` | no |
 | <a name="input_slack_team_id"></a> [slack\_team\_id](#input\_slack\_team\_id) | Slack team ID for AWS Chatbot integration | `string` | `"T0Y7JC3PF"` | no |
