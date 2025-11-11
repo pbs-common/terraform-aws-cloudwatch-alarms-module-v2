@@ -4,6 +4,6 @@ import (
 	"testing"
 )
 
-func TestKinesisExample(t *testing.T) {
+func TestNoSNSExample(t *testing.T) {
 	testCloudWatchAlarm(t, "no-sns")
 }
