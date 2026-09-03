@@ -5,5 +5,5 @@ import (
 )
 
 func TestBasicExample(t *testing.T) {
-	testCloudWatchAlarm(t, "basic")
+	testCloudWatchAlarm(t, "basic", []string{"error"}, []string{"error"})
 }

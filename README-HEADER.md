@@ -20,27 +20,47 @@ This module provisions multiple CloudWatch alarms and can send notifications to 
 
 It is an opinionated module that will configure CloudWatch alarms with as little manual configuration as possible. See the examples located in the [examples folder](/examples) to see what kind of resources are supported.
 
+Each entry in `alarms` is one of two kinds, and a single list can mix them:
+
+- **Log-metric alarm** — set `log_group_name` and `pattern`. The module creates a log metric filter that publishes `metric_name` in `metric_namespace`, then alarms on it.
+- **AWS-published metric alarm** — omit both `log_group_name` and `pattern`. No log metric filter is created; the alarm points directly at a metric AWS already publishes, such as `TargetResponseTime` in `AWS/ApplicationELB`. Use `dimensions` to scope it to a specific resource.
+
 Integrate this module like so:
 
 ```hcl
 module "alarm" {
   source = "github.com/pbs/terraform-aws-cloudwatch-alarms-module-v2?ref=x.y.z"
 
-  name       = "test-app"
-  alarms     = [
+  name = "test-app"
+  alarms = [
+    # Log-metric alarm
     {
-      name             = "error-count-alarm"
-      description      = "Alarm if more than 5 errors in 1 minute"
-      slack_channel_id = "C12345678"
-      log_group_name   = "/ecs/test-app-log-group-name"
-      pattern          = "ERROR"
-      metric_name      = "error-count"
-      metric_namespace = "test-app"
-      metric_value     = "1"
-      alarm_threshold  = 5
-      alarm_period     = 60
-      alarm_statistic  = "Sum"
+      name               = "error-count-alarm"
+      description        = "Alarm if more than 5 errors in 1 minute"
+      slack_channel_id   = "C12345678"
+      log_group_name     = "/ecs/test-app-log-group-name"
+      pattern            = "ERROR"
+      metric_name        = "error-count"
+      metric_namespace   = "test-app"
+      metric_value       = "1"
+      alarm_threshold    = 5
+      alarm_period       = 60
+      alarm_statistic    = "Sum"
       treat_missing_data = "notBreaching"
+    },
+    # AWS-published metric alarm
+    {
+      name                = "target-response-time-alarm"
+      description         = "Alarm if ALB p95 target response time exceeds 1s for 2 periods"
+      slack_channel_id    = "C12345678"
+      metric_name         = "TargetResponseTime"
+      metric_namespace    = "AWS/ApplicationELB"
+      dimensions          = { LoadBalancer = "app/test-app-alb/0123456789abcdef" }
+      alarm_threshold     = 1
+      alarm_period        = 300
+      extended_statistic  = "p95"
+      comparison_operator = "GreaterThanThreshold"
+      evaluation_periods  = 2
     }
   ]
 
@@ -52,9 +72,13 @@ module "alarm" {
   repo         = var.repo
 
   # Optional Parameters
-  
+
 }
 ```
+
+Set exactly one of `alarm_statistic` (`Sum`, `Average`, `Minimum`, `Maximum`, `SampleCount`) or `extended_statistic` (a percentile, e.g. `p95`) per alarm. `comparison_operator` defaults to `GreaterThanOrEqualToThreshold` and `evaluation_periods` to `1`.
+
+Note that CloudWatch does not validate that the resource named in `dimensions` exists — a wrong dimension value produces an alarm that silently never fires.
 
 ## Adding This Version of the Module
 
