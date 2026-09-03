@@ -2,14 +2,16 @@ package test
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/assert"
 )
 
-func testCloudWatchAlarm(t *testing.T, variant string) {
+// testCloudWatchAlarm applies the given example and asserts that an alarm exists for every key in
+// alarmKeys, and a log metric filter exists for every key in logMetricFilterKeys. Alarms on
+// AWS-published metrics have no filter, so they appear in alarmKeys only.
+func testCloudWatchAlarm(t *testing.T, variant string, alarmKeys []string, logMetricFilterKeys []string) {
 	t.Parallel()
 
 	terraformDir := fmt.Sprintf("../examples/%s", variant)
@@ -23,24 +25,23 @@ func testCloudWatchAlarm(t *testing.T, variant string) {
 
 	terraform.InitAndApply(t, terraformOptions)
 
-	arn := terraform.OutputMap(t, terraformOptions, "arn")
-	name := terraform.OutputList(t, terraformOptions, "name")
-
 	region := getAWSRegion(t)
 	accountID := getAWSAccountID(t)
 
-	expectedName := fmt.Sprintf("test-app-%s-sharedtools-error-alarm", variant)
-	expectedARN := fmt.Sprintf("arn:aws:cloudwatch:%s:%s:alarm:%s", region, accountID, expectedName)
-	expectedARNMap := map[string]string{"error": expectedARN}
-
-	assert.Equal(t, expectedARNMap, arn)
-	assert.Equal(t, expectedName, extractErrorValue(name[0]))
-}
-
-func extractErrorValue(s string) string {
-	prefix := "map[error:"
-	if strings.HasPrefix(s, prefix) && strings.HasSuffix(s, "]") {
-		return strings.TrimSuffix(strings.TrimPrefix(s, prefix), "]")
+	expectedARNs := map[string]string{}
+	expectedNames := map[string]string{}
+	for _, key := range alarmKeys {
+		alarmName := fmt.Sprintf("test-app-%s-sharedtools-%s-alarm", variant, key)
+		expectedNames[key] = alarmName
+		expectedARNs[key] = fmt.Sprintf("arn:aws:cloudwatch:%s:%s:alarm:%s", region, accountID, alarmName)
 	}
-	return s
+
+	expectedFilterNames := map[string]string{}
+	for _, key := range logMetricFilterKeys {
+		expectedFilterNames[key] = fmt.Sprintf("test-app-%s-sharedtools-%s-filter", variant, key)
+	}
+
+	assert.Equal(t, expectedARNs, terraform.OutputMap(t, terraformOptions, "arn"))
+	assert.Equal(t, expectedNames, terraform.OutputMap(t, terraformOptions, "name"))
+	assert.Equal(t, expectedFilterNames, terraform.OutputMap(t, terraformOptions, "log_metric_filter_name"))
 }

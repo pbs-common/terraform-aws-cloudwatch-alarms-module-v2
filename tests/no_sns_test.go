@@ -5,5 +5,5 @@ import (
 )
 
 func TestNoSNSExample(t *testing.T) {
-	testCloudWatchAlarm(t, "no-sns")
+	testCloudWatchAlarm(t, "no-sns", []string{"error"}, []string{"error"})
 }

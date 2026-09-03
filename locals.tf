@@ -17,6 +17,11 @@ locals {
   )
   tags = merge({ for k, v in local.default_tags : k => v if lookup(data.aws_default_tags.common_tags.tags, k, "") != v })
 
+  alarms = { for alarm in var.alarms : alarm.name => alarm }
+
+  # Alarms that derive their metric from a log group. AWS-published metric alarms need no filter.
+  log_metric_alarms = { for alarm in var.alarms : alarm.name => alarm if alarm.log_group_name != null }
+
   alarm_actions = { for alarm in var.alarms : alarm.name => alarm if alarm.slack_channel_id != "" }
 }
 
