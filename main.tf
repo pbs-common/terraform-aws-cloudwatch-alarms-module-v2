@@ -43,12 +43,12 @@ resource "aws_sns_topic" "topic" {
 }
 
 resource "aws_chatbot_slack_channel_configuration" "slack" {
-  for_each = local.alarm_actions
+  for_each = local.slack_channels
 
-  configuration_name = "${local.full_name}-${each.value.name}-${each.value.slack_channel_id}"
-  slack_channel_id   = each.value.slack_channel_id
+  configuration_name = replace("${local.full_name}-${each.key}", "_", "-")
+  slack_channel_id   = each.key
   slack_team_id      = var.slack_team_id
-  sns_topic_arns     = [aws_sns_topic.topic[each.key].arn]
+  sns_topic_arns     = [for alarm in each.value : aws_sns_topic.topic[alarm.name].arn]
   iam_role_arn       = local.chatbot_role_arn
 
   tags = local.tags
