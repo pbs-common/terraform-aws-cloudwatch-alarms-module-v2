@@ -23,6 +23,9 @@ locals {
   log_metric_alarms = { for alarm in var.alarms : alarm.name => alarm if alarm.log_group_name != null }
 
   alarm_actions = { for alarm in var.alarms : alarm.name => alarm if alarm.slack_channel_id != "" }
+  slack_channels = {
+    for alarm in values(local.alarm_actions) : alarm.slack_channel_id => alarm...
+  }
 }
 
 data "aws_default_tags" "common_tags" {}
