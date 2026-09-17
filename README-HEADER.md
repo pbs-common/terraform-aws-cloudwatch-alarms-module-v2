@@ -25,6 +25,20 @@ Each entry in `alarms` is one of two kinds, and a single list can mix them:
 - **Log-metric alarm** — set `log_group_name` and `pattern`. The module creates a log metric filter that publishes `metric_name` in `metric_namespace`, then alarms on it.
 - **AWS-published metric alarm** — omit both `log_group_name` and `pattern`. No log metric filter is created; the alarm points directly at a metric AWS already publishes, such as `TargetResponseTime` in `AWS/ApplicationELB`. Use `dimensions` to scope it to a specific resource.
 
+### Notifications
+
+By default an alarm with a `slack_channel_id` gets its own SNS topic and an AWS Chatbot configuration that posts to that channel, and an alarm without one gets no notifications at all.
+
+Set `alarm_actions` to notify targets that already exist — a shared per-product ops topic, for instance. The two combine: an alarm with both `alarm_actions` and a `slack_channel_id` notifies the caller's targets *and* posts to Slack. `ok_actions` notifies targets when the alarm returns to OK, and is explicit only: a topic created by this module is never added to it, because it exists to deliver alarm notifications rather than recoveries.
+
+### Adopting existing alarms
+
+Alarm names are generated as `<name>-<environment>-<alarm name>-alarm`, and log metric filter names as `<name>-<environment>-<alarm name>-filter`. Set `alarm_name` or `filter_name` on an entry to pin the name verbatim instead.
+
+Pin the name when an alarm already exists under a name this module would not generate — when adopting Terraform-managed alarms into this module with `moved` blocks, or when the name is referenced from somewhere Terraform does not see, such as a CloudWatch dashboard or a runbook. Without it, the rename destroys and recreates the alarm, which breaks those references and leaves a gap in alerting.
+
+See [the existing-sns example](/examples/existing-sns) for both.
+
 Integrate this module like so:
 
 ```hcl

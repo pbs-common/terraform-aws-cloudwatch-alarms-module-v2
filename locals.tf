@@ -26,6 +26,36 @@ locals {
   slack_channels = {
     for alarm in values(local.alarm_actions) : alarm.slack_channel_id => alarm...
   }
+
+  # Resource names. A caller-supplied alarm_name/filter_name is used verbatim so alarms that
+  # already exist under another name can be adopted rather than recreated.
+  alarm_names = {
+    for alarm in var.alarms :
+    alarm.name => alarm.alarm_name != null ? alarm.alarm_name : "${local.full_name}-${alarm.name}-alarm"
+  }
+
+  filter_names = {
+    for alarm in local.log_metric_alarms :
+    alarm.name => alarm.filter_name != null ? alarm.filter_name : "${local.full_name}-${alarm.name}-filter"
+  }
+
+  # ARN of the SNS topic this module created for an alarm, keyed by alarm name. Empty for alarms
+  # without a slack_channel_id.
+  created_topic_arns = { for name, topic in aws_sns_topic.topic : name => topic.arn }
+
+  # Existing targets the caller passed, plus the topic this module created for that alarm.
+  effective_alarm_actions = {
+    for alarm in var.alarms :
+    alarm.name => distinct(concat(
+      coalesce(alarm.alarm_actions, []),
+      [for topic_name, arn in local.created_topic_arns : arn if topic_name == alarm.name],
+    ))
+  }
+
+  # Explicit only: a module-created topic delivers alarm notifications, not recoveries.
+  effective_ok_actions = {
+    for alarm in var.alarms : alarm.name => coalesce(alarm.ok_actions, [])
+  }
 }
 
 data "aws_default_tags" "common_tags" {}

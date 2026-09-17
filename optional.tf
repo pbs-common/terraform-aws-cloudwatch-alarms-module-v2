@@ -30,8 +30,12 @@ Each alarm is one of two kinds:
 
 Each object supports the following attributes:
 - name: (string) Unique name for the alert
+- alarm_name: (optional, string) Full CloudWatch alarm name, used verbatim. Set this to adopt an alarm that already exists under a name this module would not generate — for example when migrating existing Terraform-managed alarms into this module with `moved` blocks, or when the name is referenced elsewhere (dashboards, runbooks). When omitted, the name is `<name>-<environment>-<alarm name>-alarm`
+- filter_name: (optional, string) Full log metric filter name, used verbatim. Log-metric alarms only. When omitted, the name is `<name>-<environment>-<alarm name>-filter`
 - description: (string) Description of the alarm
 - slack_channel_id: (optional, string) Slack channel ID to send notifications to. Omit or set to "" to skip SNS/Chatbot. Defaults to ""
+- alarm_actions: (optional, list(string)) ARNs of existing targets (e.g. an SNS topic shared across a product) notified when the alarm enters ALARM. Combined with the topic this module creates when `slack_channel_id` is set, so an alarm can page an existing topic and post to Slack
+- ok_actions: (optional, list(string)) ARNs of existing targets notified when the alarm returns to OK. Explicit only — a topic created by this module is never added here, because it exists to deliver alarm notifications, not recoveries
 - log_group_name: (optional, string) CloudWatch log group to monitor. Required for log-metric alarms, omit for AWS-published metrics
 - pattern: (optional, string) Filter pattern for log events https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html. Required for log-metric alarms, omit for AWS-published metrics
 - metric_value: (optional, string) Value to publish to the metric when the pattern matches. Log-metric alarms only. Defaults to "1"
@@ -81,12 +85,40 @@ AWS-published metric alarm:
   evaluation_periods  = 2
 }
 ```
+
+Alarm on an existing SNS topic, under a name this module does not generate:
+
+```hcl
+{
+  name                = "primary-db-connections"
+  alarm_name          = "my-app-prod-primary-db-connections"
+  description         = "Too many connections to the primary DB"
+  metric_name         = "DatabaseConnections"
+  metric_namespace    = "AWS/RDS"
+  dimensions          = { DBClusterIdentifier = "my-app-prod-cluster" }
+  alarm_threshold     = 50
+  alarm_period        = 60
+  alarm_statistic     = "Maximum"
+  comparison_operator = "GreaterThanThreshold"
+  alarm_actions       = ["arn:aws:sns:us-east-1:111122223333:my-ops-topic"]
+  ok_actions          = ["arn:aws:sns:us-east-1:111122223333:my-ops-topic"]
+}
+```
 EOT
 
   type = list(object({
-    name             = string
-    description      = string
+    name        = string
+    description = string
+
+    # Naming. Set these to adopt resources that already exist under a name this module would not
+    # generate; omit them to use the generated <name>-<environment>-<alarm name>-{alarm,filter}.
+    alarm_name  = optional(string)
+    filter_name = optional(string)
+
+    # Notifications
     slack_channel_id = optional(string, "")
+    alarm_actions    = optional(list(string))
+    ok_actions       = optional(list(string))
 
     # Log-metric mode. Omit both log_group_name and pattern for AWS-published metrics.
     log_group_name = optional(string)
@@ -112,6 +144,26 @@ EOT
   validation {
     condition     = length(distinct([for alarm in var.alarms : alarm.name])) == length(var.alarms)
     error_message = "Each alarm name must be unique."
+  }
+
+  validation {
+    condition     = length(distinct([for alarm in var.alarms : alarm.alarm_name if alarm.alarm_name != null])) == length([for alarm in var.alarms : alarm.alarm_name if alarm.alarm_name != null])
+    error_message = "Each alarm_name must be unique. CloudWatch alarm names are unique per account and region, so two alarms sharing one would fight over the same alarm."
+  }
+
+  validation {
+    condition     = length(distinct([for alarm in var.alarms : alarm.filter_name if alarm.filter_name != null])) == length([for alarm in var.alarms : alarm.filter_name if alarm.filter_name != null])
+    error_message = "Each filter_name must be unique."
+  }
+
+  validation {
+    condition     = alltrue([for alarm in var.alarms : alarm.filter_name == null || alarm.log_group_name != null])
+    error_message = "The filter_name attribute is only supported for log-metric alarms (those with log_group_name and pattern)."
+  }
+
+  validation {
+    condition     = alltrue([for alarm in var.alarms : alltrue([for arn in concat(coalesce(alarm.alarm_actions, []), coalesce(alarm.ok_actions, [])) : can(regex("^arn:aws[a-z\\-]*:", arn))])])
+    error_message = "Every alarm_actions and ok_actions entry must be an ARN."
   }
 
   validation {

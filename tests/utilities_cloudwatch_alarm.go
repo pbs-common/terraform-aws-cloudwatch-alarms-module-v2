@@ -4,9 +4,38 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+// cloudWatchAlarm holds the parts of a live alarm the tests assert on.
+type cloudWatchAlarm struct {
+	alarmActions []string
+	okActions    []string
+}
+
+// getCloudWatchAlarm reads the named alarm back from CloudWatch. Outputs only expose ARNs and
+// names, so the notification wiring has to be read from the live alarm.
+func getCloudWatchAlarm(t *testing.T, alarmName string) cloudWatchAlarm {
+	sess, err := session.NewSession()
+	require.NoError(t, err, "failed to create AWS session")
+
+	out, err := cloudwatch.New(sess).DescribeAlarms(&cloudwatch.DescribeAlarmsInput{
+		AlarmNames: []*string{aws.String(alarmName)},
+		AlarmTypes: []*string{aws.String(cloudwatch.AlarmTypeMetricAlarm)},
+	})
+	require.NoError(t, err, "failed to describe alarm %s", alarmName)
+	require.Len(t, out.MetricAlarms, 1, "expected exactly one alarm named %s", alarmName)
+
+	return cloudWatchAlarm{
+		alarmActions: aws.StringValueSlice(out.MetricAlarms[0].AlarmActions),
+		okActions:    aws.StringValueSlice(out.MetricAlarms[0].OKActions),
+	}
+}
 
 // testCloudWatchAlarm applies the given example and asserts that an alarm exists for every key in
 // alarmKeys, and a log metric filter exists for every key in logMetricFilterKeys. Alarms on
