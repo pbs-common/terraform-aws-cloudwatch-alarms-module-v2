@@ -1,7 +1,7 @@
 resource "aws_cloudwatch_log_metric_filter" "filter" {
   for_each = local.log_metric_alarms
 
-  name           = "${local.full_name}-${each.value.name}-filter"
+  name           = local.filter_names[each.key]
   log_group_name = each.value.log_group_name
   pattern        = each.value.pattern
 
@@ -15,7 +15,7 @@ resource "aws_cloudwatch_log_metric_filter" "filter" {
 resource "aws_cloudwatch_metric_alarm" "alarm" {
   for_each = local.alarms
 
-  alarm_name          = "${local.full_name}-${each.value.name}-alarm"
+  alarm_name          = local.alarm_names[each.key]
   comparison_operator = each.value.comparison_operator
   evaluation_periods  = each.value.evaluation_periods
   threshold           = each.value.alarm_threshold
@@ -26,7 +26,8 @@ resource "aws_cloudwatch_metric_alarm" "alarm" {
   statistic           = each.value.alarm_statistic
   extended_statistic  = each.value.extended_statistic
   alarm_description   = each.value.description
-  alarm_actions       = contains(keys(local.alarm_actions), each.key) ? [aws_sns_topic.topic[each.key].arn] : []
+  alarm_actions       = local.effective_alarm_actions[each.key]
+  ok_actions          = local.effective_ok_actions[each.key]
   treat_missing_data  = each.value.treat_missing_data
 
   tags = local.tags
