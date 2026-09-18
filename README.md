@@ -7,7 +7,7 @@
 Use this URL for the source of the module. See the usage examples below for more details.
 
 ```hcl
-github.com/pbs/terraform-aws-cloudwatch-alarms-module-v2?ref=x.y.z
+github.com/pbs/terraform-aws-cloudwatch-alarms-module-v2?ref=1.1.1
 ```
 
 ### Alternative Installation Methods
@@ -43,7 +43,7 @@ Integrate this module like so:
 
 ```hcl
 module "alarm" {
-  source = "github.com/pbs/terraform-aws-cloudwatch-alarms-module-v2?ref=x.y.z"
+  source = "github.com/pbs/terraform-aws-cloudwatch-alarms-module-v2?ref=1.1.1"
 
   name = "test-app"
   alarms = [
@@ -98,7 +98,7 @@ Note that CloudWatch does not validate that the resource named in `dimensions` e
 
 If this repo is added as a subtree, then the version of the module should be close to the version shown here:
 
-`x.y.z`
+`1.1.1`
 
 Note, however that subtrees can be altered as desired within repositories.
 
