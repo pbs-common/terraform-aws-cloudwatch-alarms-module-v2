@@ -36,6 +36,7 @@ Each object supports the following attributes:
 - slack_channel_id: (optional, string) Slack channel ID to send notifications to. Omit or set to "" to skip SNS/Chatbot. Defaults to ""
 - alarm_actions: (optional, list(string)) ARNs of existing targets (e.g. an SNS topic shared across a product) notified when the alarm enters ALARM. Combined with the topic this module creates when `slack_channel_id` is set, so an alarm can page an existing topic and post to Slack
 - ok_actions: (optional, list(string)) ARNs of existing targets notified when the alarm returns to OK. Explicit only — a topic created by this module is never added here, because it exists to deliver alarm notifications, not recoveries
+- email_addresses: (optional, list(string)) Email addresses subscribed to the SNS topic this module creates and owns for this alarm. Setting this creates that topic even when `slack_channel_id` is omitted. Subscriptions always attach to the module-owned topic, never to an ARN passed via `alarm_actions`/`ok_actions` — those remain independent, additive targets. AWS emails each address a confirmation link that Terraform cannot click for you, so a freshly-applied subscription sits unconfirmed until a human does. Defaults to []
 - log_group_name: (optional, string) CloudWatch log group to monitor. Required for log-metric alarms, omit for AWS-published metrics
 - pattern: (optional, string) Filter pattern for log events https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html. Required for log-metric alarms, omit for AWS-published metrics
 - metric_value: (optional, string) Value to publish to the metric when the pattern matches. Log-metric alarms only. Defaults to "1"
@@ -86,6 +87,23 @@ AWS-published metric alarm:
 }
 ```
 
+Alarm with email notifications, no Slack channel:
+
+```hcl
+{
+  name                = "primary-db-connections"
+  description         = "Too many connections to the primary DB"
+  email_addresses     = ["ops-oncall@example.com"]
+  metric_name         = "DatabaseConnections"
+  metric_namespace    = "AWS/RDS"
+  dimensions          = { DBClusterIdentifier = "my-app-prod-cluster" }
+  alarm_threshold     = 50
+  alarm_period        = 60
+  alarm_statistic     = "Maximum"
+  comparison_operator = "GreaterThanThreshold"
+}
+```
+
 Alarm on an existing SNS topic, under a name this module does not generate:
 
 ```hcl
@@ -119,6 +137,7 @@ EOT
     slack_channel_id = optional(string, "")
     alarm_actions    = optional(list(string))
     ok_actions       = optional(list(string))
+    email_addresses  = optional(list(string), [])
 
     # Log-metric mode. Omit both log_group_name and pattern for AWS-published metrics.
     log_group_name = optional(string)
@@ -199,5 +218,10 @@ EOT
   validation {
     condition     = alltrue([for alarm in var.alarms : alarm.dimensions == null || alarm.log_group_name == null])
     error_message = "The dimensions attribute is only supported for AWS-published metric alarms (those without log_group_name and pattern)."
+  }
+
+  validation {
+    condition     = alltrue([for alarm in var.alarms : alltrue([for email in alarm.email_addresses : can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", email))])])
+    error_message = "Every email_addresses entry must be a valid email address."
   }
 }

@@ -12,3 +12,8 @@ output "log_metric_filter_names" {
   description = "Name of the log metric filter provisioned for each log-metric alarm. Alarms on AWS-published metrics are absent from this map."
   value       = { for key, filter in aws_cloudwatch_log_metric_filter.filter : key => filter.name }
 }
+
+output "sns_topic_arns" {
+  description = "ARN of the SNS topic this module created for each alarm. Alarms with neither a slack_channel_id nor email_addresses are absent from this map."
+  value       = local.created_topic_arns
+}

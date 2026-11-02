@@ -37,10 +37,18 @@ resource "aws_cloudwatch_metric_alarm" "alarm" {
 }
 
 resource "aws_sns_topic" "topic" {
-  for_each = local.alarm_actions
+  for_each = local.topic_alarms
 
   name = "${local.full_name}-${each.value.name}-topic"
   tags = local.tags
+}
+
+resource "aws_sns_topic_subscription" "email" {
+  for_each = local.email_subscriptions
+
+  topic_arn = aws_sns_topic.topic[each.value.alarm_name].arn
+  protocol  = "email"
+  endpoint  = each.value.email
 }
 
 resource "aws_chatbot_slack_channel_configuration" "slack" {

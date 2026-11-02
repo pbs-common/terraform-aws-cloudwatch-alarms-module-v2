@@ -27,6 +27,25 @@ locals {
     for alarm in values(local.alarm_actions) : alarm.slack_channel_id => alarm...
   }
 
+  # Alarms that need a topic this module creates and owns: a Slack channel, email subscriptions,
+  # or both. Distinct from local.alarm_actions, which is Slack channels only — an email-only alarm
+  # still needs its own topic but has no Chatbot configuration.
+  topic_alarms = {
+    for alarm in var.alarms : alarm.name => alarm
+    if alarm.slack_channel_id != "" || length(alarm.email_addresses) > 0
+  }
+
+  # One entry per (alarm, email) pair, keyed uniquely for the subscription resource's for_each.
+  # Subscriptions always attach to the topic this module creates for the alarm, never to an ARN
+  # passed via alarm_actions/ok_actions.
+  email_subscriptions = {
+    for pair in flatten([
+      for alarm in var.alarms : [
+        for email in alarm.email_addresses : { alarm_name = alarm.name, email = email }
+      ]
+    ]) : "${pair.alarm_name}-${pair.email}" => pair
+  }
+
   # Resource names. A caller-supplied alarm_name/filter_name is used verbatim so alarms that
   # already exist under another name can be adopted rather than recreated.
   alarm_names = {
@@ -40,7 +59,7 @@ locals {
   }
 
   # ARN of the SNS topic this module created for an alarm, keyed by alarm name. Empty for alarms
-  # without a slack_channel_id.
+  # with neither a slack_channel_id nor email_addresses.
   created_topic_arns = { for name, topic in aws_sns_topic.topic : name => topic.arn }
 
   # Existing targets the caller passed, plus the topic this module created for that alarm.

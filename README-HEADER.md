@@ -31,6 +31,8 @@ By default an alarm with a `slack_channel_id` gets its own SNS topic and an AWS 
 
 Set `alarm_actions` to notify targets that already exist — a shared per-product ops topic, for instance. The two combine: an alarm with both `alarm_actions` and a `slack_channel_id` notifies the caller's targets *and* posts to Slack. `ok_actions` notifies targets when the alarm returns to OK, and is explicit only: a topic created by this module is never added to it, because it exists to deliver alarm notifications rather than recoveries.
 
+Set `email_addresses` to subscribe one or more addresses to the SNS topic this module creates and owns for that alarm — it creates that topic even if `slack_channel_id` is omitted. These subscriptions are independent of `alarm_actions`/`ok_actions`: they always attach to the module-owned topic, never to an ARN the caller passed in. AWS requires each address to confirm via a link in an email it sends; Terraform cannot do that step for you, so a freshly-applied subscription sits pending until a human confirms it. See [the email example](/examples/email).
+
 ### Adopting existing alarms
 
 Alarm names are generated as `<name>-<environment>-<alarm name>-alarm`, and log metric filter names as `<name>-<environment>-<alarm name>-filter`. Set `alarm_name` or `filter_name` on an entry to pin the name verbatim instead.
